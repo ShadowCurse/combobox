@@ -2,6 +2,8 @@ use bevy::prelude::*;
 
 use std::f32::consts::PI;
 
+use crate::physics::{Ball, Dynamic, Velocity};
+
 pub struct PlatformPlugin;
 
 impl Plugin for PlatformPlugin {
@@ -122,6 +124,11 @@ fn spawn_items(
                 material,
                 transform,
                 ..default()
+            })
+            .insert(Ball { radius: 10.0 })
+            .insert(Dynamic)
+            .insert(Velocity {
+                velocity: Vec3::default(),
             });
     }
 }

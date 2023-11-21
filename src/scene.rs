@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use crate::physics::Rectangle;
 
 use std::f32::consts::PI;
 
@@ -26,6 +27,10 @@ fn spawn_scene(
         material: material.clone(),
         transform,
         ..default()
+    })
+    .insert(Rectangle {
+        width: 1.0,
+        height: 100.0,
     });
 
     // Right wall
@@ -36,6 +41,10 @@ fn spawn_scene(
         material: material.clone(),
         transform,
         ..default()
+    })
+    .insert(Rectangle {
+        width: 1.0,
+        height: 100.0,
     });
 
     // Bottom wall
@@ -45,5 +54,9 @@ fn spawn_scene(
         material: material.clone(),
         transform,
         ..default()
+    })
+    .insert(Rectangle {
+        width: 100.0,
+        height: 1.0,
     });
 }

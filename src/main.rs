@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 
+mod physics;
 mod platform;
 mod scene;
 
+use physics::PhysicsPlugin;
 use platform::PlatformPlugin;
 use scene::ScenePlugin;
 
@@ -16,6 +18,9 @@ fn main() {
     });
 
     app.add_plugins(DefaultPlugins);
+    app.add_plugins(PhysicsPlugin {
+        debug: true,
+    });
     app.add_plugins(PlatformPlugin);
     app.add_plugins(ScenePlugin);
 
