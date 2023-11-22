@@ -16,6 +16,9 @@ impl Plugin for PlatformPlugin {
     }
 }
 
+const BALL_RADIUS: f32 = 10.0;
+const BALL_BUUNCINESS: f32 = 0.8;
+
 #[derive(Component)]
 struct Platform {
     speed: f32,
@@ -125,7 +128,10 @@ fn spawn_items(
                 transform,
                 ..default()
             })
-            .insert(Ball { radius: 10.0 })
+            .insert(Ball {
+                radius: BALL_RADIUS,
+                bounciness: BALL_BUUNCINESS,
+            })
             .insert(Dynamic)
             .insert(Velocity {
                 velocity: Vec3::default(),
