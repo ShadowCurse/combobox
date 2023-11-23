@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::petgraph::visit::IntoNodeReferences};
 
 const GRAVITY: f32 = 100.0;
 const MAX_SPEED: f32 = 100.0;
@@ -199,7 +199,21 @@ fn balls_collision_resolution(
     for (ball_entity, ball, mut ball_velocity, mut ball_transform) in balls.iter_mut() {
         for event in collision_events.read() {
             if ball_entity == event.entity1 {
-                ball_velocity.velocity.z = ball_velocity.velocity.z.abs() * ball.bounciness;
+                println!("z: {}", ball_transform.translation.z);
+                let normal = (ball_transform.translation.xz() - event.collision_point).normalize();
+                let normal_3 = Vec3::new(normal.x, 0.0, normal.y);
+
+                let angle = ball_velocity.velocity.angle_between(normal_3);
+                let velocity_2 = ball_velocity.velocity.xz();// Vec2::new(ball_velocity.velocity.x, ball_velocity.velocity.z);
+                // let angle = normal.angle_between(velocity_2);
+
+                let rotation_angle = 2.0 * (std::f32::consts::PI - angle);
+                let rotated_velocity =
+                    velocity_2.rotate(Vec2::new(rotation_angle.cos(), rotation_angle.sin()));
+                let rotated_velocity_3 = Vec3::new(rotated_velocity.x, 0.0, rotated_velocity.y);
+
+                ball_velocity.velocity = rotated_velocity_3 * ball.bounciness;
+
                 ball_transform.translation.z = event.collision_point.y + ball.radius;
             }
         }
