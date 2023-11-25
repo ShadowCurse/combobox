@@ -42,6 +42,7 @@ impl Plugin for PhysicsPlugin {
                 Update,
                 debug_physics_event.in_set(PhysicsSystems::CollisionResolution),
             );
+            app.add_systems(Update, debug_physics_rect);
         }
     }
 }
@@ -109,6 +110,8 @@ fn ball_rect_collision(
     if (ball_transform.translation.x - px).powi(2) + (ball_transform.translation.z - pz).powi(2)
         < ball.radius.powi(2)
     {
+        println!("collision: x: {px}, z: {pz}");
+
         Some(Vec2::new(px, pz))
     } else {
         None
@@ -178,10 +181,36 @@ fn debug_physics_event(
         commands.spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             material: materials.add(Color::RED.into()),
-            transform: Transform::from_xyz(event.collision_point.x, event.collision_point.y, 2.0),
+            transform: Transform::from_xyz(event.collision_point.x, 2.0, event.collision_point.y),
             ..default()
         });
     }
+}
+
+fn debug_physics_rect(
+    rects: Query<(&Transform, &Rectangle)>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut run: Local<bool>,
+) {
+    if *run {
+        return;
+    }
+    for (transform, rectangle) in rects.iter() {
+        println!("lol");
+        commands.spawn(PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Box::new(
+                rectangle.width,
+                10.0,
+                rectangle.height,
+            ))),
+            material: materials.add(Color::YELLOW_GREEN.into()),
+            transform: Transform::from_translation(transform.translation),
+            ..default()
+        });
+    }
+    *run = true;
 }
 
 fn balls_movement(time: Res<Time>, mut balls: Query<(&mut Transform, &mut Velocity), With<Ball>>) {
@@ -196,25 +225,28 @@ fn balls_collision_resolution(
     mut collision_events: EventReader<CollisionEvent>,
     mut balls: Query<(Entity, &Ball, &mut Velocity, &mut Transform), With<Dynamic>>,
 ) {
-    for (ball_entity, ball, mut ball_velocity, mut ball_transform) in balls.iter_mut() {
-        for event in collision_events.read() {
+    for event in collision_events.read() {
+        for (ball_entity, ball, mut ball_velocity, mut ball_transform) in balls.iter_mut() {
             if ball_entity == event.entity1 {
-                let mut normal =
-                    (ball_transform.translation.xz() - event.collision_point).normalize();
-                normal.x = if normal.x == 0.0 {
+                let normal = (ball_transform.translation.xz() - event.collision_point).normalize();
+                let mut modifier = normal;
+                modifier.x = if modifier.x == 0.0 {
                     1.0
                 } else {
-                    normal.x.abs() * -1.0
+                    modifier.x.abs() * -1.0
                 };
-                normal.y = if normal.y == 0.0 {
+                modifier.y = if modifier.y == 0.0 {
                     1.0
                 } else {
-                    normal.y.abs() * -1.0
+                    modifier.y.abs() * -1.0
                 };
-                let modifier = Vec3::new(normal.x, 0.0, normal.y);
+                let modifier = Vec3::new(modifier.x, 0.0, modifier.y);
                 ball_velocity.velocity = ball_velocity.velocity * modifier * ball.bounciness;
 
-                ball_transform.translation.z = event.collision_point.y + ball.radius;
+                let collision_point =
+                    Vec3::new(event.collision_point.x, 0.0, event.collision_point.y);
+                let normal = Vec3::new(normal.x, 0.0, normal.y).normalize();
+                ball_transform.translation = collision_point + normal * ball.radius;
             }
         }
     }
