@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::physics::Rectangle;
+use bevy::prelude::*;
 
 use std::f32::consts::PI;
 
@@ -22,41 +22,44 @@ fn spawn_scene(
     // Left wall
     let mut transform = Transform::from_rotation(Quat::from_rotation_y(-PI / 2.0));
     transform.translation = Vec3::new(0.0, 0.0, 50.0);
-    commands.spawn(PbrBundle {
-        mesh: mesh.clone(),
-        material: material.clone(),
-        transform,
-        ..default()
-    })
-    .insert(Rectangle {
-        width: 1.0,
-        height: 100.0,
-    });
+    commands
+        .spawn(PbrBundle {
+            mesh: mesh.clone(),
+            material: material.clone(),
+            transform,
+            ..default()
+        })
+        .insert(Rectangle {
+            width: 1.0,
+            height: 100.0,
+        });
 
     // Right wall
     let mut transform = Transform::from_rotation(Quat::from_rotation_y(-PI / 2.0));
     transform.translation = Vec3::new(100.0, 0.0, 50.0);
-    commands.spawn(PbrBundle {
-        mesh: mesh.clone(),
-        material: material.clone(),
-        transform,
-        ..default()
-    })
-    .insert(Rectangle {
-        width: 1.0,
-        height: 100.0,
-    });
+    commands
+        .spawn(PbrBundle {
+            mesh: mesh.clone(),
+            material: material.clone(),
+            transform,
+            ..default()
+        })
+        .insert(Rectangle {
+            width: 1.0,
+            height: 100.0,
+        });
 
     // Bottom wall
     let transform = Transform::from_translation(Vec3::new(50.0, 0.0, 0.0));
-    commands.spawn(PbrBundle {
-        mesh: mesh.clone(),
-        material: material.clone(),
-        transform,
-        ..default()
-    })
-    .insert(Rectangle {
-        width: 100.0,
-        height: 1.0,
-    });
+    commands
+        .spawn(PbrBundle {
+            mesh: mesh.clone(),
+            material: material.clone(),
+            transform,
+            ..default()
+        })
+        .insert(Rectangle {
+            width: 100.0,
+            height: 1.0,
+        });
 }
