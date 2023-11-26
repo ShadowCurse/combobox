@@ -30,7 +30,8 @@ impl Plugin for PhysicsPlugin {
         app.add_systems(Update, balls_movement.in_set(PhysicsSystems::Movement));
         app.add_systems(
             Update,
-            ball_rect_collision_system.in_set(PhysicsSystems::CollisionDetection),
+            (ball_rect_collision_system, ball_ball_collision_system)
+                .in_set(PhysicsSystems::CollisionDetection),
         );
         app.add_systems(
             Update,
@@ -110,65 +111,54 @@ fn ball_rect_collision(
     if (ball_transform.translation.x - px).powi(2) + (ball_transform.translation.z - pz).powi(2)
         < ball.radius.powi(2)
     {
-        println!("collision: x: {px}, z: {pz}");
-
         Some(Vec2::new(px, pz))
     } else {
         None
     }
 }
 
-// pub fn rect_rect_collision_system(
-//     mut collision_events: EventWriter<CollisionEvent>,
-//     dynamic_rectangles: Query<(Entity, &Rectangle, &Transform), With<Dynamic>>,
-//     rectangles: Query<(Entity, &Rectangle, &Transform), Without<Dynamic>>,
-// ) {
-//     for (dyn_entity, dyn_rect, dyn_transform) in dynamic_rectangles.iter() {
-//         for (rect_entity, rect, rect_transform) in rectangles.iter() {
-//             if let Some(collision_point) =
-//                 rect_rect_collision(dyn_rect, dyn_transform, rect, rect_transform)
-//             {
-//                 collision_events.send(CollisionEvent {
-//                     entity1: dyn_entity,
-//                     entity2: rect_entity,
-//                     collision_point,
-//                 });
-//             }
-//         }
-//     }
-// }
-//
-// fn rect_rect_collision(
-//     dyn_rect: &Rectangle,
-//     dyn_transform: &Transform,
-//     rect: &Rectangle,
-//     rect_transform: &Transform,
-// ) -> Option<Vec2> {
-//     let collision_x = dyn_transform.translation.x + dyn_rect.width / 2.0
-//         >= rect_transform.translation.x - rect.width / 2.0
-//         && rect_transform.translation.x + rect.width / 2.0
-//             >= dyn_transform.translation.x - dyn_rect.width / 2.0;
-//
-//     let collision_y = dyn_transform.translation.y + dyn_rect.height / 2.0
-//         >= rect_transform.translation.y - rect.height / 2.0
-//         && rect_transform.translation.y + rect.height / 2.0
-//             >= dyn_transform.translation.y - dyn_rect.height / 2.0;
-//
-//     if collision_x && collision_y {
-//         let top = (dyn_transform.translation.y + dyn_rect.height / 2.0)
-//             .min(rect_transform.translation.y + rect.height / 2.0);
-//         let bot = (dyn_transform.translation.y - dyn_rect.height / 2.0)
-//             .max(rect_transform.translation.y - rect.height / 2.0);
-//         let right = (dyn_transform.translation.x + dyn_rect.width / 2.0)
-//             .min(rect_transform.translation.x + rect.width / 2.0);
-//         let left = (dyn_transform.translation.x - dyn_rect.width / 2.0)
-//             .max(rect_transform.translation.x - rect.width / 2.0);
-//
-//         Some(Vec2::new((left + right) / 2.0, (top + bot) / 2.0))
-//     } else {
-//         None
-//     }
-// }
+fn ball_ball_collision_system(
+    mut collision_events: EventWriter<CollisionEvent>,
+    balls: Query<(Entity, &Ball, &Transform), With<Dynamic>>,
+) {
+    for [(ball_1_entity, ball_1, ball_1_transform), (ball_2_entity, ball_2, ball_2_transform)] in
+        balls.iter_combinations()
+    {
+        if let Some(collision_point) =
+            ball_ball_collision(ball_1, ball_1_transform, ball_2, ball_2_transform)
+        {
+            collision_events.send(CollisionEvent {
+                entity1: ball_1_entity,
+                entity2: ball_2_entity,
+                collision_point,
+            });
+            collision_events.send(CollisionEvent {
+                entity1: ball_2_entity,
+                entity2: ball_1_entity,
+                collision_point,
+            });
+        }
+    }
+}
+
+fn ball_ball_collision(
+    ball_1: &Ball,
+    ball_1_transform: &Transform,
+    ball_2: &Ball,
+    ball_2_transform: &Transform,
+) -> Option<Vec2> {
+    let v = ball_1_transform.translation - ball_2_transform.translation;
+    let radius_sum = ball_1.radius + ball_2.radius;
+    let length = v.length();
+    if length < radius_sum {
+        let delta = (radius_sum - length) / 4.0;
+        let offset = v.normalize() * (ball_2.radius - delta);
+        let center = ball_2_transform.translation + offset;
+        Some(Vec2::new(center.x, center.z))
+    } else {
+        None
+    }
+}
 
 fn debug_physics_event(
     mut collision_events: EventReader<CollisionEvent>,
@@ -229,19 +219,11 @@ fn balls_collision_resolution(
         for (ball_entity, ball, mut ball_velocity, mut ball_transform) in balls.iter_mut() {
             if ball_entity == event.entity1 {
                 let normal = (ball_transform.translation.xz() - event.collision_point).normalize();
-                let mut modifier = normal;
-                modifier.x = if modifier.x == 0.0 {
-                    1.0
-                } else {
-                    modifier.x.abs() * -1.0
-                };
-                modifier.y = if modifier.y == 0.0 {
-                    1.0
-                } else {
-                    modifier.y.abs() * -1.0
-                };
-                let modifier = Vec3::new(modifier.x, 0.0, modifier.y);
-                ball_velocity.velocity = ball_velocity.velocity * modifier * ball.bounciness;
+                let velocity = ball_velocity.velocity.xz();
+
+                let reflected = velocity - 2.0 * (velocity.dot(normal)) * normal;
+                let reflected = Vec3::new(reflected.x, 0.0, reflected.y);
+                ball_velocity.velocity = reflected * ball.bounciness;
 
                 let collision_point =
                     Vec3::new(event.collision_point.x, 0.0, event.collision_point.y);
