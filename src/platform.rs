@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use rand::Rng;
 
-use std::f32::consts::PI;
+use std::{f32::consts::PI, ops::Range};
 
 use crate::physics::{Ball, Dynamic, Velocity};
 
@@ -8,31 +9,51 @@ pub struct PlatformPlugin;
 
 impl Plugin for PlatformPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_phatform);
+        app.add_systems(Startup, init);
         app.add_systems(Update, spawn_controller);
         app.add_systems(Update, spawn_items);
-        app.add_event::<ItemDropEvent>();
-        app.init_resource::<ItemDropTimer>();
+        app.add_event::<SpawnItemEvent>();
+        app.init_resource::<SpawnItemTimer>();
     }
 }
 
-const BALL_RADIUS: f32 = 10.0;
-const BALL_BUUNCINESS: f32 = 0.8;
+pub const SPAWN_OFFSET: Vec3 = Vec3::new(0.0, 0.0, -1.0);
+pub const SPAWN_RANGE: Range<u8> = 0..2;
+pub const NUM_ITEMS: u8 = 5;
+pub const ITEM_1_RADIUS: f32 = 5.0;
+pub const ITEM_1_BOUNCINESS: f32 = 0.5;
+pub const ITEM_1_COLOR: Color = Color::GRAY;
+pub const ITEM_2_RADIUS: f32 = 8.0;
+pub const ITEM_2_BOUNCINESS: f32 = 0.4;
+pub const ITEM_2_COLOR: Color = Color::YELLOW_GREEN;
+pub const ITEM_3_RADIUS: f32 = 13.0;
+pub const ITEM_3_BOUNCINESS: f32 = 0.3;
+pub const ITEM_3_COLOR: Color = Color::GREEN;
+pub const ITEM_4_RADIUS: f32 = 16.0;
+pub const ITEM_4_BOUNCINESS: f32 = 0.2;
+pub const ITEM_4_COLOR: Color = Color::GOLD;
+pub const ITEM_5_RADIUS: f32 = 19.0;
+pub const ITEM_5_BOUNCINESS: f32 = 0.1;
+pub const ITEM_5_COLOR: Color = Color::ORANGE_RED;
 
 #[derive(Component)]
-struct Platform {
-    speed: f32,
+pub struct Platform {
+    pub speed: f32,
+    pub next_item: u8,
 }
 
 #[derive(Event)]
-struct ItemDropEvent;
-
-#[derive(Resource)]
-struct ItemDropTimer {
-    timer: Timer,
+pub struct SpawnItemEvent {
+    pub item_type: u8,
+    pub position: Vec3,
 }
 
-impl Default for ItemDropTimer {
+#[derive(Resource)]
+pub struct SpawnItemTimer {
+    pub timer: Timer,
+}
+
+impl Default for SpawnItemTimer {
     fn default() -> Self {
         Self {
             timer: Timer::from_seconds(1.0, TimerMode::Repeating),
@@ -40,11 +61,99 @@ impl Default for ItemDropTimer {
     }
 }
 
-fn spawn_phatform(
+pub struct ItemResource {
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<StandardMaterial>,
+    pub radius: f32,
+    pub bounciness: f32,
+}
+
+#[derive(Resource)]
+pub struct ItemsResources {
+    pub resources: [ItemResource; NUM_ITEMS as usize],
+}
+
+fn init(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let item_1_mesh = meshes.add(
+        shape::UVSphere {
+            radius: ITEM_1_RADIUS,
+            ..default()
+        }
+        .into(),
+    );
+    let item_1_material = materials.add(ITEM_1_COLOR.into());
+    let item_2_mesh = meshes.add(
+        shape::UVSphere {
+            radius: ITEM_2_RADIUS,
+            ..default()
+        }
+        .into(),
+    );
+    let item_2_material = materials.add(ITEM_2_COLOR.into());
+    let item_3_mesh = meshes.add(
+        shape::UVSphere {
+            radius: ITEM_3_RADIUS,
+            ..default()
+        }
+        .into(),
+    );
+    let item_3_material = materials.add(ITEM_3_COLOR.into());
+    let item_4_mesh = meshes.add(
+        shape::UVSphere {
+            radius: ITEM_4_RADIUS,
+            ..default()
+        }
+        .into(),
+    );
+    let item_4_material = materials.add(ITEM_4_COLOR.into());
+    let item_5_mesh = meshes.add(
+        shape::UVSphere {
+            radius: ITEM_5_RADIUS,
+            ..default()
+        }
+        .into(),
+    );
+    let item_5_material = materials.add(ITEM_5_COLOR.into());
+
+    commands.insert_resource(ItemsResources {
+        resources: [
+            ItemResource {
+                mesh: item_1_mesh,
+                material: item_1_material,
+                radius: ITEM_1_RADIUS,
+                bounciness: ITEM_1_BOUNCINESS,
+            },
+            ItemResource {
+                mesh: item_2_mesh,
+                material: item_2_material,
+                radius: ITEM_2_RADIUS,
+                bounciness: ITEM_2_BOUNCINESS,
+            },
+            ItemResource {
+                mesh: item_3_mesh,
+                material: item_3_material,
+                radius: ITEM_3_RADIUS,
+                bounciness: ITEM_3_BOUNCINESS,
+            },
+            ItemResource {
+                mesh: item_4_mesh,
+                material: item_4_material,
+                radius: ITEM_4_RADIUS,
+                bounciness: ITEM_4_BOUNCINESS,
+            },
+            ItemResource {
+                mesh: item_5_mesh,
+                material: item_5_material,
+                radius: ITEM_5_RADIUS,
+                bounciness: ITEM_5_BOUNCINESS,
+            },
+        ],
+    });
+
     let mesh = meshes.add(
         shape::Capsule {
             radius: 2.0,
@@ -64,17 +173,20 @@ fn spawn_phatform(
             transform,
             ..default()
         })
-        .insert(Platform { speed: 100.0 });
+        .insert(Platform {
+            speed: 100.0,
+            next_item: 0,
+        });
 }
 
 fn spawn_controller(
     time: Res<Time>,
     keys: Res<Input<KeyCode>>,
-    mut spawn_item_timer: ResMut<ItemDropTimer>,
-    mut spawn_item_events: EventWriter<ItemDropEvent>,
-    mut platform: Query<(&mut Transform, &Platform)>,
+    mut spawn_item_timer: ResMut<SpawnItemTimer>,
+    mut spawn_item_events: EventWriter<SpawnItemEvent>,
+    mut platform: Query<(&mut Transform, &mut Platform)>,
 ) {
-    let (mut platform_transform, platform) = match platform.get_single_mut() {
+    let (mut platform_transform, mut platform) = match platform.get_single_mut() {
         Ok(p) => p,
         Err(_) => return,
     };
@@ -89,7 +201,11 @@ fn spawn_controller(
 
     spawn_item_timer.timer.tick(time.delta());
     if keys.pressed(KeyCode::Space) && spawn_item_timer.timer.finished() {
-        spawn_item_events.send(ItemDropEvent);
+        spawn_item_events.send(SpawnItemEvent {
+            item_type: platform.next_item,
+            position: platform_transform.translation + SPAWN_OFFSET,
+        });
+        platform.next_item = rand::thread_rng().gen_range(SPAWN_RANGE);
     }
 
     if let Some(dir) = dir {
@@ -98,39 +214,24 @@ fn spawn_controller(
 }
 
 fn spawn_items(
-    platform: Query<&Transform, With<Platform>>,
-    mut spawn_item_events: EventReader<ItemDropEvent>,
+    items_resources: Res<ItemsResources>,
+    mut spawn_item_events: EventReader<SpawnItemEvent>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let platform_transform = match platform.get_single() {
-        Ok(p) => p,
-        Err(_) => return,
-    };
-
-    for _ in spawn_item_events.read() {
-        let mesh = meshes.add(
-            shape::UVSphere {
-                radius: 10.0,
-                ..default()
-            }
-            .into(),
-        );
-        let material = materials.add(Color::WHITE.into());
-        let mut transform = *platform_transform;
-        transform.translation.z -= 10.0;
+    for event in spawn_item_events.read() {
+        let resources = &items_resources.resources[event.item_type as usize];
 
         commands
             .spawn(PbrBundle {
-                mesh,
-                material,
-                transform,
+                mesh: resources.mesh.clone(),
+                material: resources.material.clone(),
+                transform: Transform::from_translation(event.position),
                 ..default()
             })
             .insert(Ball {
-                radius: BALL_RADIUS,
-                bounciness: BALL_BUUNCINESS,
+                radius: resources.radius,
+                bounciness: resources.bounciness,
+                ball_type: event.item_type,
             })
             .insert(Dynamic)
             .insert(Velocity {

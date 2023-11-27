@@ -1,6 +1,8 @@
-use bevy::{prelude::*, utils::petgraph::visit::IntoNodeReferences};
+use bevy::prelude::*;
 
-const GRAVITY: f32 = 100.0;
+use crate::platform::{SpawnItemEvent, NUM_ITEMS};
+
+const GRAVITY: f32 = 200.0;
 const MAX_SPEED: f32 = 100.0;
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -27,7 +29,7 @@ impl Plugin for PhysicsPlugin {
             PhysicsSystems::CollisionDetection.before(PhysicsSystems::CollisionResolution),
         );
 
-        app.add_systems(Update, balls_movement.in_set(PhysicsSystems::Movement));
+        app.add_systems(Update, balls_update.in_set(PhysicsSystems::Movement));
         app.add_systems(
             Update,
             (ball_rect_collision_system, ball_ball_collision_system)
@@ -57,6 +59,7 @@ pub struct Velocity {
 pub struct Ball {
     pub radius: f32,
     pub bounciness: f32,
+    pub ball_type: u8,
 }
 
 #[derive(Component, Debug)]
@@ -118,8 +121,10 @@ fn ball_rect_collision(
 }
 
 fn ball_ball_collision_system(
-    mut collision_events: EventWriter<CollisionEvent>,
     balls: Query<(Entity, &Ball, &Transform), With<Dynamic>>,
+    mut commands: Commands,
+    mut collision_events: EventWriter<CollisionEvent>,
+    mut spawn_item_events: EventWriter<SpawnItemEvent>,
 ) {
     for [(ball_1_entity, ball_1, ball_1_transform), (ball_2_entity, ball_2, ball_2_transform)] in
         balls.iter_combinations()
@@ -127,16 +132,25 @@ fn ball_ball_collision_system(
         if let Some(collision_point) =
             ball_ball_collision(ball_1, ball_1_transform, ball_2, ball_2_transform)
         {
-            collision_events.send(CollisionEvent {
-                entity1: ball_1_entity,
-                entity2: ball_2_entity,
-                collision_point,
-            });
-            collision_events.send(CollisionEvent {
-                entity1: ball_2_entity,
-                entity2: ball_1_entity,
-                collision_point,
-            });
+            if ball_1.ball_type == ball_2.ball_type {
+                spawn_item_events.send(SpawnItemEvent {
+                    item_type: (ball_1.ball_type + 1) % NUM_ITEMS,
+                    position: Vec3::new(collision_point.x, 0.0, collision_point.y),
+                });
+                commands.entity(ball_1_entity).despawn();
+                commands.entity(ball_2_entity).despawn();
+            } else {
+                collision_events.send(CollisionEvent {
+                    entity1: ball_1_entity,
+                    entity2: ball_2_entity,
+                    collision_point,
+                });
+                collision_events.send(CollisionEvent {
+                    entity1: ball_2_entity,
+                    entity2: ball_1_entity,
+                    collision_point,
+                });
+            }
         }
     }
 }
@@ -157,6 +171,37 @@ fn ball_ball_collision(
         Some(Vec2::new(center.x, center.z))
     } else {
         None
+    }
+}
+
+fn balls_update(time: Res<Time>, mut balls: Query<(&mut Transform, &mut Velocity), With<Ball>>) {
+    for (mut transform, mut velocity) in balls.iter_mut() {
+        velocity.velocity.z =
+            (velocity.velocity.z - GRAVITY * time.delta().as_secs_f32()).max(-MAX_SPEED);
+        transform.translation += velocity.velocity * time.delta().as_secs_f32();
+    }
+}
+
+fn balls_collision_resolution(
+    mut collision_events: EventReader<CollisionEvent>,
+    mut balls: Query<(Entity, &Ball, &mut Velocity, &mut Transform), With<Dynamic>>,
+) {
+    for event in collision_events.read() {
+        for (ball_entity, ball, mut ball_velocity, mut ball_transform) in balls.iter_mut() {
+            if ball_entity == event.entity1 {
+                let normal = (ball_transform.translation.xz() - event.collision_point).normalize();
+                let velocity = ball_velocity.velocity.xz();
+
+                let reflected = velocity - 2.0 * (velocity.dot(normal)) * normal;
+                let reflected = Vec3::new(reflected.x, 0.0, reflected.y);
+                ball_velocity.velocity = reflected * ball.bounciness;
+
+                let collision_point =
+                    Vec3::new(event.collision_point.x, 0.0, event.collision_point.y);
+                let normal = Vec3::new(normal.x, 0.0, normal.y).normalize();
+                ball_transform.translation = collision_point + normal * ball.radius;
+            }
+        }
     }
 }
 
@@ -201,35 +246,4 @@ fn debug_physics_rect(
         });
     }
     *run = true;
-}
-
-fn balls_movement(time: Res<Time>, mut balls: Query<(&mut Transform, &mut Velocity), With<Ball>>) {
-    for (mut transform, mut velocity) in balls.iter_mut() {
-        velocity.velocity.z =
-            (velocity.velocity.z - GRAVITY * time.delta().as_secs_f32()).max(-MAX_SPEED);
-        transform.translation += velocity.velocity * time.delta().as_secs_f32();
-    }
-}
-
-fn balls_collision_resolution(
-    mut collision_events: EventReader<CollisionEvent>,
-    mut balls: Query<(Entity, &Ball, &mut Velocity, &mut Transform), With<Dynamic>>,
-) {
-    for event in collision_events.read() {
-        for (ball_entity, ball, mut ball_velocity, mut ball_transform) in balls.iter_mut() {
-            if ball_entity == event.entity1 {
-                let normal = (ball_transform.translation.xz() - event.collision_point).normalize();
-                let velocity = ball_velocity.velocity.xz();
-
-                let reflected = velocity - 2.0 * (velocity.dot(normal)) * normal;
-                let reflected = Vec3::new(reflected.x, 0.0, reflected.y);
-                ball_velocity.velocity = reflected * ball.bounciness;
-
-                let collision_point =
-                    Vec3::new(event.collision_point.x, 0.0, event.collision_point.y);
-                let normal = Vec3::new(normal.x, 0.0, normal.y).normalize();
-                ball_transform.translation = collision_point + normal * ball.radius;
-            }
-        }
-    }
 }

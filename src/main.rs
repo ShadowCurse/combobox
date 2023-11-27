@@ -18,9 +18,7 @@ fn main() {
     });
 
     app.add_plugins(DefaultPlugins);
-    app.add_plugins(PhysicsPlugin {
-        debug: true,
-    });
+    app.add_plugins(PhysicsPlugin { debug: false });
     app.add_plugins(PlatformPlugin);
     app.add_plugins(ScenePlugin);
 
@@ -46,7 +44,8 @@ fn setup(
     });
     // camera
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(50.0, -200.0, 50.0).looking_at(Vec3::new(50.0, 0.0, 40.0), Vec3::Z),
+        transform: Transform::from_xyz(150.0, -200.0, 100.0)
+            .looking_at(Vec3::new(50.0, 0.0, 40.0), Vec3::Z),
         ..default()
     });
 

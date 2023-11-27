@@ -16,7 +16,7 @@ fn spawn_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mesh = meshes.add(shape::Box::new(100.0, 1.0, 1.0).into());
+    let mesh = meshes.add(shape::Box::new(100.0, 20.0, 5.0).into());
     let material = materials.add(Color::GRAY.into());
 
     // Left wall
@@ -30,7 +30,7 @@ fn spawn_scene(
             ..default()
         })
         .insert(Rectangle {
-            width: 1.0,
+            width: 5.0,
             height: 100.0,
         });
 
@@ -45,7 +45,7 @@ fn spawn_scene(
             ..default()
         })
         .insert(Rectangle {
-            width: 1.0,
+            width: 5.0,
             height: 100.0,
         });
 
@@ -60,6 +60,6 @@ fn spawn_scene(
         })
         .insert(Rectangle {
             width: 100.0,
-            height: 1.0,
+            height: 5.0,
         });
 }
