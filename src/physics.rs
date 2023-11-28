@@ -126,9 +126,14 @@ fn ball_ball_collision_system(
     mut collision_events: EventWriter<CollisionEvent>,
     mut spawn_item_events: EventWriter<SpawnItemEvent>,
 ) {
+    let mut removed_entities = vec![];
     for [(ball_1_entity, ball_1, ball_1_transform), (ball_2_entity, ball_2, ball_2_transform)] in
         balls.iter_combinations()
     {
+        if removed_entities.contains(&ball_1_entity) || removed_entities.contains(&ball_2_entity) {
+            continue;
+        }
+
         if let Some(collision_point) =
             ball_ball_collision(ball_1, ball_1_transform, ball_2, ball_2_transform)
         {
@@ -137,8 +142,7 @@ fn ball_ball_collision_system(
                     item_type: (ball_1.ball_type + 1) % NUM_ITEMS,
                     position: Vec3::new(collision_point.x, 0.0, collision_point.y),
                 });
-                commands.entity(ball_1_entity).despawn();
-                commands.entity(ball_2_entity).despawn();
+                removed_entities.extend_from_slice(&[ball_1_entity, ball_2_entity]);
             } else {
                 collision_events.send(CollisionEvent {
                     entity1: ball_1_entity,
@@ -152,6 +156,10 @@ fn ball_ball_collision_system(
                 });
             }
         }
+    }
+
+    for e in removed_entities {
+        commands.entity(e).despawn();
     }
 }
 
