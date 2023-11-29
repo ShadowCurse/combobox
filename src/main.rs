@@ -44,7 +44,7 @@ fn setup(
     });
     // camera
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(150.0, -200.0, 100.0)
+        transform: Transform::from_xyz(50.0, -200.0, 100.0)
             .looking_at(Vec3::new(50.0, 0.0, 40.0), Vec3::Z),
         ..default()
     });
