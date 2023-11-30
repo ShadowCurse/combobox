@@ -3,15 +3,16 @@ use bevy::prelude::*;
 mod physics;
 mod platform;
 mod scene;
+mod ui;
 
 use physics::PhysicsPlugin;
 use platform::PlatformPlugin;
 use scene::ScenePlugin;
+use ui::HudPlugin;
 
 fn main() {
     let mut app = App::new();
 
-    // app.insert_resource(ClearColor(Color::BLACK));
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.4,
@@ -21,10 +22,16 @@ fn main() {
     app.add_plugins(PhysicsPlugin { debug: false });
     app.add_plugins(PlatformPlugin);
     app.add_plugins(ScenePlugin);
+    app.add_plugins(HudPlugin);
 
     app.add_systems(Startup, setup);
 
     app.run();
+}
+
+#[derive(Default, Resource)]
+pub struct Score {
+    score: u32,
 }
 
 fn setup(
@@ -32,6 +39,8 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    commands.insert_resource(Score::default());
+
     // light
     commands.spawn(PointLightBundle {
         point_light: PointLight {

@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::platform::{SpawnItemEvent, NUM_ITEMS};
+use crate::{
+    platform::{SpawnItemEvent, NUM_ITEMS},
+    Score,
+};
 
 const GRAVITY: f32 = 200.0;
 const MAX_SPEED: f32 = 100.0;
@@ -122,6 +125,7 @@ fn ball_rect_collision(
 
 fn ball_ball_collision_system(
     balls: Query<(Entity, &Ball, &Transform), With<Dynamic>>,
+    mut score: ResMut<Score>,
     mut commands: Commands,
     mut collision_events: EventWriter<CollisionEvent>,
     mut spawn_item_events: EventWriter<SpawnItemEvent>,
@@ -143,6 +147,7 @@ fn ball_ball_collision_system(
                     position: Vec3::new(collision_point.x, 0.0, collision_point.y),
                 });
                 removed_entities.extend_from_slice(&[ball_1_entity, ball_2_entity]);
+                score.score += 1;
             } else {
                 collision_events.send(CollisionEvent {
                     entity1: ball_1_entity,
