@@ -16,8 +16,8 @@ fn spawn_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mesh = meshes.add(shape::Box::new(100.0, 20.0, 5.0).into());
-    let material = materials.add(Color::GRAY.into());
+    let mesh = meshes.add(Cuboid::new(100.0, 20.0, 5.0).mesh());
+    let material = materials.add(Color::WHITE);
 
     // Left wall
     let mut transform = Transform::from_rotation(Quat::from_rotation_y(-PI / 2.0));

@@ -15,7 +15,7 @@ fn main() {
 
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
-        brightness: 0.4,
+        brightness: 20.0,
     });
 
     app.add_plugins(DefaultPlugins);
@@ -44,11 +44,11 @@ fn setup(
     // light
     commands.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 100.0,
-            shadows_enabled: true,
+            intensity: 10000000.0,
+            range: 1000.0,
             ..default()
         },
-        transform: Transform::from_xyz(2.0, 2.0, 2.0),
+        transform: Transform::from_xyz(50.0, -50.0, 80.0),
         ..default()
     });
     // camera
@@ -59,8 +59,8 @@ fn setup(
     });
 
     // X axis
-    let x_mesh = meshes.add(shape::Box::new(10.0, 1.0, 1.0).into());
-    let x_material = materials.add(Color::RED.into());
+    let x_mesh = meshes.add(Cuboid::new(10.0, 1.0, 1.0).mesh());
+    let x_material = materials.add(Color::RED);
     let x_transform = Transform::from_translation(Vec3::new(15.0, 10.0, 20.0));
     commands.spawn(PbrBundle {
         mesh: x_mesh,
@@ -70,8 +70,8 @@ fn setup(
     });
 
     // Y axis
-    let y_mesh = meshes.add(shape::Box::new(1.0, 10.0, 1.0).into());
-    let y_material = materials.add(Color::GREEN.into());
+    let y_mesh = meshes.add(Cuboid::new(1.0, 10.0, 1.0).mesh());
+    let y_material = materials.add(Color::GREEN);
     let y_transform = Transform::from_translation(Vec3::new(10.0, 15.0, 20.0));
     commands.spawn(PbrBundle {
         mesh: y_mesh,
@@ -81,8 +81,8 @@ fn setup(
     });
 
     // Z axis
-    let z_mesh = meshes.add(shape::Box::new(1.0, 1.0, 10.0).into());
-    let z_material = materials.add(Color::BLUE.into());
+    let z_mesh = meshes.add(Cuboid::new(1.0, 1.0, 10.0).mesh());
+    let z_material = materials.add(Color::BLUE);
     let z_transform = Transform::from_translation(Vec3::new(10.0, 10.0, 25.0));
     commands.spawn(PbrBundle {
         mesh: z_mesh,

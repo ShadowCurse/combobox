@@ -38,7 +38,7 @@ fn hud_setup(asset_server: Res<AssetServer>, mut command: Commands) {
             builder
                 .spawn(TextBundle {
                     text: Text::from_section("Score: ---", score_text_style)
-                        .with_alignment(TextAlignment::Left),
+                        .with_justify(JustifyText::Left),
                     ..default()
                 })
                 .insert(UiScore);

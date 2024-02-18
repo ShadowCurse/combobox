@@ -79,45 +79,48 @@ fn init(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let item_1_mesh = meshes.add(
-        shape::UVSphere {
+        Sphere {
             radius: ITEM_1_RADIUS,
-            ..default()
         }
-        .into(),
+        .mesh()
+        .build(),
     );
-    let item_1_material = materials.add(ITEM_1_COLOR.into());
+    let item_1_material = materials.add(ITEM_1_COLOR);
     let item_2_mesh = meshes.add(
-        shape::UVSphere {
+        Sphere {
             radius: ITEM_2_RADIUS,
-            ..default()
         }
-        .into(),
+        .mesh()
+        .build(),
     );
-    let item_2_material = materials.add(ITEM_2_COLOR.into());
+    let item_2_material = materials.add(ITEM_2_COLOR);
     let item_3_mesh = meshes.add(
-        shape::UVSphere {
+        Sphere {
             radius: ITEM_3_RADIUS,
             ..default()
         }
-        .into(),
+        .mesh()
+        .build(),
     );
-    let item_3_material = materials.add(ITEM_3_COLOR.into());
+    let item_3_material = materials.add(ITEM_3_COLOR);
     let item_4_mesh = meshes.add(
-        shape::UVSphere {
+        Sphere {
             radius: ITEM_4_RADIUS,
             ..default()
         }
-        .into(),
+        .mesh()
+        .build(),
     );
-    let item_4_material = materials.add(ITEM_4_COLOR.into());
+    let item_4_material = materials.add(ITEM_4_COLOR);
     let item_5_mesh = meshes.add(
-        shape::UVSphere {
+        Sphere {
             radius: ITEM_5_RADIUS,
             ..default()
         }
-        .into(),
+        .mesh()
+        .build(),
     );
-    let item_5_material = materials.add(ITEM_5_COLOR.into());
+    let item_5_material = materials.add(ITEM_5_COLOR);
 
     commands.insert_resource(ItemsResources {
         resources: [
@@ -155,14 +158,13 @@ fn init(
     });
 
     let mesh = meshes.add(
-        shape::Capsule {
+        Capsule3d {
             radius: 2.0,
-            depth: 5.0,
-            ..default()
+            half_length: 5.0,
         }
-        .into(),
+        .mesh(),
     );
-    let material = materials.add(Color::GOLD.into());
+    let material = materials.add(Color::GOLD);
 
     let mut transform = Transform::from_rotation(Quat::from_rotation_z(PI / 2.0));
     transform.translation = Vec3::new(50.0, 0.0, 100.0);
@@ -181,7 +183,7 @@ fn init(
 
 fn spawn_controller(
     time: Res<Time>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut spawn_item_timer: ResMut<SpawnItemTimer>,
     mut spawn_item_events: EventWriter<SpawnItemEvent>,
     mut platform: Query<(&mut Transform, &mut Platform)>,
@@ -192,10 +194,10 @@ fn spawn_controller(
     };
 
     let mut dir = None;
-    if keys.pressed(KeyCode::A) {
+    if keys.pressed(KeyCode::KeyA) {
         dir = Some(Vec3::NEG_X);
     }
-    if keys.pressed(KeyCode::D) {
+    if keys.pressed(KeyCode::KeyD) {
         dir = Some(Vec3::X);
     }
 

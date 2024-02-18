@@ -227,8 +227,8 @@ fn debug_physics_event(
     for event in collision_events.read() {
         debug!("collision event: {:?}", event);
         commands.spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: materials.add(Color::RED.into()),
+            mesh: meshes.add(Cuboid::from_size(Vec3::ONE).mesh()),
+            material: materials.add(Color::RED),
             transform: Transform::from_xyz(event.collision_point.x, 2.0, event.collision_point.y),
             ..default()
         });
@@ -248,12 +248,12 @@ fn debug_physics_rect(
     for (transform, rectangle) in rects.iter() {
         println!("lol");
         commands.spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Box::new(
+            mesh: meshes.add(Cuboid::new(
                 rectangle.width,
                 10.0,
                 rectangle.height,
-            ))),
-            material: materials.add(Color::YELLOW_GREEN.into()),
+            ).mesh()),
+            material: materials.add(Color::YELLOW_GREEN),
             transform: Transform::from_translation(transform.translation),
             ..default()
         });
